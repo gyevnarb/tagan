@@ -43,6 +43,6 @@ python train.py \
     --trainclasses_file trainvalclasses.txt \
     --save_filename_G ./birds/G.pth \
     --save_filename_D ./birds/D.pth \
-    --save_filename_stats ./bird/ \
+    --save_filename_stats ./birds/ \
     --lambda_cond_loss 10 \
     --lambda_recon_loss 0.2

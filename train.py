@@ -222,6 +222,12 @@ if __name__ == '__main__':
         epoch_elapsed_time = time.time() - epoch_start_time
         epoch_elapsed_time = "{:.4f}".format(epoch_elapsed_time)
 
+        print('Epoch [%03d/%03d], Iter [%03d/%03d], D_real: %.4f, D_real_c: %.4f, D_fake: %.4f, G_fake: %.4f, G_fake_c: %.4f, G_recon: %.4f, KLD: %.4f, Time: %s'
+            % (epoch + 1, args.num_epochs, i + 1, len(train_loader), avg_D_real_loss / (i + 1),
+                avg_D_real_c_loss / (i + 1), avg_D_fake_loss / (i + 1),
+                avg_G_fake_loss / (i + 1), avg_G_fake_c_loss / (i + 1),
+                avg_G_recon_loss / (i + 1), avg_kld / (i + 1), epoch_elapsed_time))
+
         total_losses['Epoch'].append(epoch + 1)
         total_losses['D_real'].append(avg_D_real_loss / (i + 1))
         total_losses['D_real_c'].append(avg_D_real_c_loss / (i + 1))
