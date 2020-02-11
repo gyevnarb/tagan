@@ -88,6 +88,7 @@ if __name__ == '__main__':
                               shuffle=True,
                               num_workers=args.num_threads)
 
+    parallel = False
     if torch.cuda.device_count() > 1 and args.use_gpu:
         device = torch.cuda.current_device()
         G = Generator()
@@ -96,6 +97,7 @@ if __name__ == '__main__':
         D = Discriminator()
         D = nn.DataParallel(D)
         D.to(device)
+        parallel = True
         print('Use Multi GPU', device)
     elif torch.cuda.device_count() == 1 and args.use_gpu:
         device = torch.cuda.current_device()
@@ -131,6 +133,7 @@ if __name__ == '__main__':
             img, txt, len_txt = img.to(device), txt.to(device), len_txt.to(device)
             img = img.mul(2).sub(1)
             # BTC to TBC
+            # if not parallel:
             txt = txt.transpose(1, 0)
             # negative text
             txt_m = torch.cat((txt[:, -1, :].unsqueeze(1), txt[:, :-1, :]), 1)
