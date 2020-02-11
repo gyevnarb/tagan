@@ -41,7 +41,8 @@ python train.py \
     --img_root ${DATASET_DIR}/CUB_200_2011/images \
     --caption_root ${DATASET_DIR}/CUB_200_2011/cub_icml \
     --trainclasses_file trainvalclasses.txt \
-    --save_filename_G ./models/birds_G.pth \
-    --save_filename_D ./models/birds_D.pth \
+    --save_filename_G ./birds/G.pth \
+    --save_filename_D ./birds/D.pth \
+    --save_filename_stats ./bird/ \
     --lambda_cond_loss 10 \
     --lambda_recon_loss 0.2
