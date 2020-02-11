@@ -97,6 +97,9 @@ class Generator(nn.Module):
 
         self.apply(init_weights)
 
+    def set_batch_first(self, parallel):
+        self.batch_first = parallel
+
     def forward(self, img, txt):
         # image encoder
         e = self.encoder(img)
@@ -105,7 +108,8 @@ class Generator(nn.Module):
         if type(txt) is not tuple:
             raise TypeError('txt must be tuple (txt_data, txt_len).')
 
-        txt_data = txt[0]
+        if self.batch_first:
+            txt_data = txt[0].transpose(1, 0)
         txt_len = txt[1]
 
         hi_f = torch.zeros(txt_data.size(1), 512, device=txt_data.device)
@@ -201,6 +205,9 @@ class Discriminator(nn.Module):
 
         self.apply(init_weights)
 
+    def set_batch_first(self, parallel):
+        self.batch_first = parallel
+
     def forward(self, img, txt, len_txt, negative=False):
         img_feat_1 = self.encoder_1(img)
         img_feat_2 = self.encoder_2(img_feat_1)
@@ -209,6 +216,8 @@ class Discriminator(nn.Module):
         D = self.classifier(img_feat_3).squeeze()
 
         # text attention
+        if self.batch_first:
+            txt = txt.transpose(1, 0)
         u, m, mask = self._encode_txt(txt, len_txt)
         att_txt = (u * m.unsqueeze(0)).sum(-1)
         att_txt_exp = att_txt.exp() * mask.squeeze(-1)
