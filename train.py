@@ -111,9 +111,6 @@ if __name__ == '__main__':
         device = torch.device('cpu')
         print(device)
 
-    G.set_batch_first(parallel)
-    D.set_batch_first(parallel)
-
     g_optimizer = torch.optim.Adam(G.parameters(),
                                    lr=args.learning_rate, betas=(args.momentum, 0.999))
     d_optimizer = torch.optim.Adam(D.parameters(),

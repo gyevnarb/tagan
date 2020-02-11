@@ -35,8 +35,9 @@ class ResidualBlock(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self):
+    def __init__(self, batch_first=True):
         super(Generator, self).__init__()
+        self.batch_first = batch_first
 
         # encoder
         self.encoder = nn.Sequential(
@@ -97,9 +98,6 @@ class Generator(nn.Module):
 
         self.apply(init_weights)
 
-    def set_batch_first(self, parallel):
-        self.batch_first = parallel
-
     def forward(self, img, txt):
         # image encoder
         e = self.encoder(img)
@@ -146,9 +144,10 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self):
+    def __init__(self, batch_first=True):
         super(Discriminator, self).__init__()
         self.eps = 1e-7
+        self.batch_first = batch_first
 
         self.encoder_1 = nn.Sequential(
             nn.Conv2d(3, 64, 4, 2, padding=1),
@@ -204,9 +203,6 @@ class Discriminator(nn.Module):
         self.classifier = nn.Conv2d(512, 1, 4)
 
         self.apply(init_weights)
-
-    def set_batch_first(self, parallel):
-        self.batch_first = parallel
 
     def forward(self, img, txt, len_txt, negative=False):
         img_feat_1 = self.encoder_1(img)
