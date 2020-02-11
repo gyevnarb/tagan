@@ -2,7 +2,6 @@ import os
 import numpy as np
 from PIL import Image
 
-import nltk
 from nltk.tokenize import RegexpTokenizer
 
 import torch
