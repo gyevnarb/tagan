@@ -1,6 +1,7 @@
 import os
 import argparse
 import visdom
+import time
 
 import torch
 import torch.nn as nn
@@ -11,6 +12,7 @@ import torchvision.transforms as transforms
 
 from model import Generator, Discriminator
 from data import ConvertCapVec, ReadFromVec
+from storage_utils import save_statistics
 
 
 parser = argparse.ArgumentParser()
@@ -24,6 +26,8 @@ parser.add_argument('--save_filename_G', type=str, required=True,
                     help='checkpoint file of generator')
 parser.add_argument('--save_filename_D', type=str, required=True,
                     help='checkpoint file of discriminator')
+parser.add_argument('--save_filename_stats', type=str, required=True,
+                    help='stats file path')
 parser.add_argument('--log_interval', type=int, default=10,
                     help='the number of iterations (default: 10)')
 parser.add_argument('--num_threads', type=int, default=8,
@@ -121,7 +125,12 @@ if __name__ == '__main__':
     if args.visdom_server:
         vis = visdom.Visdom(server=args.visdom_server)
 
+    total_losses = {'Epoch': [], 'D_real': [], 'D_real_c': [], 'D_fake': [], 'G_fake': [],
+                    'G_fake_c': [], 'G_recon': [], 'KLD': [], 'Time': []}
+
     for epoch in range(args.num_epochs):
+        epoch_start_time = time.time()
+
         avg_D_real_loss = 0
         avg_D_real_c_loss = 0
         avg_D_fake_loss = 0
@@ -209,6 +218,21 @@ if __name__ == '__main__':
 
         d_lr_scheduler.step()
         g_lr_scheduler.step()
+
+        epoch_elapsed_time = time.time() - epoch_start_time
+        epoch_elapsed_time = "{:.4f}".format(epoch_elapsed_time)
+
+        total_losses['Epoch'].append(epoch + 1)
+        total_losses['D_real'].append(avg_D_real_loss / (i + 1))
+        total_losses['D_real_c'].append(avg_D_real_c_loss / (i + 1))
+        total_losses['D_fake'].append(avg_D_fake_loss / (i + 1))
+        total_losses['G_fake'].append(avg_G_fake_loss / (i + 1))
+        total_losses['G_fake_c'].append(avg_G_fake_c_loss / (i + 1))
+        total_losses['G_recon'].append(avg_G_recon_loss / (i + 1))
+        total_losses['KLD'].append(avg_kld / (i + 1))
+        total_losses['Time'].append(epoch_elapsed_time)
+
+        save_statistics(args.save_filename_stats, 'summary.csv', total_losses, epoch)
 
         if args.visdom_server:
             img_vis = img.mul(0.5).add(0.5)
