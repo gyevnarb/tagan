@@ -3,6 +3,7 @@ import argparse
 import visdom
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.optim.lr_scheduler as lr_scheduler
@@ -41,8 +42,8 @@ parser.add_argument('--lambda_cond_loss', type=float, default=10,
                     help='lambda of conditional loss (default: 10)')
 parser.add_argument('--lambda_recon_loss', type=float, default=0.2,
                     help='lambda of reconstruction loss (default: 0.2)')
-parser.add_argument('--no_cuda', action='store_true',
-                    help='do not use cuda')
+parser.add_argument('--use_gpu', action='store_true', default=True,
+                    help='use gpu')
 parser.add_argument('--visdom_server', type=str,
                     help='Use visdom server')
 args = parser.parse_args()
@@ -62,11 +63,6 @@ def ones_like(x):
 
 
 if __name__ == '__main__':
-    if not args.no_cuda and not torch.cuda.is_available():
-        print('Warning: cuda is not available on this machine.')
-        args.no_cuda = True
-    device = torch.device('cpu' if args.no_cuda else 'cuda')
-
     caption_root = args.caption_root.split('/')[-1]
     if (caption_root + '_vec') not in os.listdir(args.caption_root.replace(caption_root, '')):
         raise RuntimeError('Caption data was not prepared. Please run preprocess_caption.py.')
@@ -78,24 +74,40 @@ if __name__ == '__main__':
 
     print('Loading a dataset...')
     train_data = ReadFromVec(args.img_root,
-        args.caption_root,
-        args.trainclasses_file,
-        transforms.Compose([
-            transforms.Resize(136),
-            transforms.RandomCrop(128),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(10),
-            transforms.ToTensor()
-        ]))
+                             args.caption_root,
+                             args.trainclasses_file,
+                             transforms.Compose([
+                                transforms.Resize(136),
+                                transforms.RandomCrop(128),
+                                transforms.RandomHorizontalFlip(),
+                                transforms.RandomRotation(10),
+                                transforms.ToTensor()]))
 
     train_loader = DataLoader(train_data,
-        batch_size=args.batch_size,
-        shuffle=True,
-        num_workers=args.num_threads)
+                              batch_size=args.batch_size,
+                              shuffle=True,
+                              num_workers=args.num_threads)
 
-    G = Generator()
-    D = Discriminator()
-    G, D = G.to(device), D.to(device)
+    if torch.cuda.device_count() > 1 and args.use_gpu:
+        device = torch.cuda.current_device()
+        G = Generator()
+        G = nn.DataParallel(G)
+        G.to(device)
+        D = Discriminator()
+        D = nn.DataParallel(D)
+        D.to(device)
+        print('Use Multi GPU', device)
+    elif torch.cuda.device_count() == 1 and args.use_gpu:
+        device = torch.cuda.current_device()
+        G = Generator()
+        G.to(device)
+        D = Discriminator()
+        D.to(device)
+        print('Use GPU', device)
+    else:
+        print("use CPU")
+        device = torch.device('cpu')
+        print(device)
 
     g_optimizer = torch.optim.Adam(G.parameters(),
                                    lr=args.learning_rate, betas=(args.momentum, 0.999))
