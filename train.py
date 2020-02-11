@@ -43,6 +43,8 @@ parser.add_argument('--lambda_recon_loss', type=float, default=0.2,
                     help='lambda of reconstruction loss (default: 0.2)')
 parser.add_argument('--no_cuda', action='store_true',
                     help='do not use cuda')
+parser.add_argument('--visdom_server', type=str,
+                    help='Use visdom server')
 args = parser.parse_args()
 
 
@@ -102,12 +104,10 @@ if __name__ == '__main__':
     g_lr_scheduler = lr_scheduler.StepLR(g_optimizer, 100, args.lr_decay)
     d_lr_scheduler = lr_scheduler.StepLR(d_optimizer, 100, args.lr_decay)
 
-    vis = visdom.Visdom()
+    if args.visdom_server:
+        vis = visdom.Visdom(server=args.visdom_server)
 
     for epoch in range(args.num_epochs):
-        d_lr_scheduler.step()
-        g_lr_scheduler.step()
-
         avg_D_real_loss = 0
         avg_D_real_c_loss = 0
         avg_D_fake_loss = 0
@@ -192,10 +192,14 @@ if __name__ == '__main__':
                         avg_G_fake_loss / (i + 1), avg_G_fake_c_loss / (i + 1),
                         avg_G_recon_loss / (i + 1), avg_kld / (i + 1)))
 
-        img_vis = img.mul(0.5).add(0.5)
-        vis.images(img_vis.cpu().detach().numpy(), nrow=4, opts=dict(title='original'))
-        fake_vis = fake.mul(0.5).add(0.5)
-        vis.images(fake_vis.cpu().detach().numpy(), nrow=4, opts=dict(title='generated'))
+        d_lr_scheduler.step()
+        g_lr_scheduler.step()
+
+        if args.visdom_server:
+            img_vis = img.mul(0.5).add(0.5)
+            vis.images(img_vis.cpu().detach().numpy(), nrow=4, opts=dict(title='original'))
+            fake_vis = fake.mul(0.5).add(0.5)
+            vis.images(fake_vis.cpu().detach().numpy(), nrow=4, opts=dict(title='generated'))
 
         torch.save(G.state_dict(), args.save_filename_G)
         torch.save(D.state_dict(), args.save_filename_D)
