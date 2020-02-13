@@ -1,6 +1,6 @@
 import os
 import argparse
-import fastText
+import fasttext
 from PIL import Image
 import cv2
 import numpy as np
@@ -11,6 +11,7 @@ from torchvision.utils import save_image
 
 from model import Generator
 from data import split_sentence_into_words
+from collections import OrderedDict
 
 
 parser = argparse.ArgumentParser()
@@ -39,11 +40,16 @@ if __name__ == '__main__':
         os.makedirs(args.output_root)
 
     print('Loading a pretrained fastText model...')
-    word_embedding = fastText.load_model(args.fasttext_model)
+    word_embedding = fasttext.load_model(args.fasttext_model)
 
     print('Loading a pretrained model...')
-    G = Generator().to(device)
-    G.load_state_dict(torch.load(args.generator_model))
+    G = Generator(batch_first=False).to(device)
+    state_dict = torch.load(args.generator_model)
+    new_state_dict = OrderedDict()
+    for k, v in state_dict.items():
+        name = k[7:] # remove `module.`
+        new_state_dict[name] = v
+    G.load_state_dict(new_state_dict)
     G.eval()
 
     transform = transforms.Compose([

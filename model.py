@@ -35,9 +35,8 @@ class ResidualBlock(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, batch_first=True):
+    def __init__(self):
         super(Generator, self).__init__()
-        self.batch_first = batch_first
 
         # encoder
         self.encoder = nn.Sequential(
@@ -106,8 +105,7 @@ class Generator(nn.Module):
         if type(txt) is not tuple:
             raise TypeError('txt must be tuple (txt_data, txt_len).')
 
-        if self.batch_first:
-            txt_data = txt[0].transpose(1, 0)
+        txt_data = txt[0]
         txt_len = txt[1]
 
         hi_f = torch.zeros(txt_data.size(1), 512, device=txt_data.device)
@@ -144,10 +142,9 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, batch_first=True):
+    def __init__(self):
         super(Discriminator, self).__init__()
         self.eps = 1e-7
-        self.batch_first = batch_first
 
         self.encoder_1 = nn.Sequential(
             nn.Conv2d(3, 64, 4, 2, padding=1),
@@ -212,8 +209,6 @@ class Discriminator(nn.Module):
         D = self.classifier(img_feat_3).squeeze()
 
         # text attention
-        if self.batch_first:
-            txt = txt.transpose(1, 0)
         u, m, mask = self._encode_txt(txt, len_txt)
         att_txt = (u * m.unsqueeze(0)).sum(-1)
         att_txt_exp = att_txt.exp() * mask.squeeze(-1)

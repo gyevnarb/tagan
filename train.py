@@ -59,14 +59,21 @@ def label_like(label, x):
     v = v.to(x.device)
     return v
 
+
 def zeros_like(x):
     return label_like(0, x)
+
 
 def ones_like(x):
     return label_like(1, x)
 
 
 if __name__ == '__main__':
+    if not args.no_cuda and not torch.cuda.is_available():
+        print('Warning: cuda is not available on this machine.')
+        args.no_cuda = True
+    device = torch.device('cpu' if args.no_cuda else 'cuda')
+
     caption_root = args.caption_root.split('/')[-1]
     if (caption_root + '_vec') not in os.listdir(args.caption_root.replace(caption_root, '')):
         raise RuntimeError('Caption data was not prepared. Please run preprocess_caption.py.')
@@ -92,28 +99,9 @@ if __name__ == '__main__':
                               shuffle=True,
                               num_workers=args.num_threads)
 
-    parallel = False
-    if torch.cuda.device_count() > 1 and args.use_gpu:
-        device = torch.cuda.current_device()
-        G = Generator()
-        G = nn.DataParallel(G)
-        G.to(device)
-        D = Discriminator()
-        D = nn.DataParallel(D)
-        D.to(device)
-        parallel = True
-        print('Use Multi GPU', device)
-    elif torch.cuda.device_count() == 1 and args.use_gpu:
-        device = torch.cuda.current_device()
-        G = Generator()
-        G.to(device)
-        D = Discriminator()
-        D.to(device)
-        print('Use GPU', device)
-    else:
-        print("use CPU")
-        device = torch.device('cpu')
-        print(device)
+    G = Generator()
+    D = Discriminator()
+    G, D = G.to(device), D.to(device)
 
     g_optimizer = torch.optim.Adam(G.parameters(),
                                    lr=args.learning_rate, betas=(args.momentum, 0.999))
@@ -142,8 +130,7 @@ if __name__ == '__main__':
             img, txt, len_txt = img.to(device), txt.to(device), len_txt.to(device)
             img = img.mul(2).sub(1)
             # BTC to TBC
-            if not parallel:
-                txt = txt.transpose(1, 0)
+            txt = txt.transpose(1, 0)
             # negative text
             txt_m = torch.cat((txt[:, -1, :].unsqueeze(1), txt[:, :-1, :]), 1)
             len_txt_m = torch.cat((len_txt[-1].unsqueeze(0), len_txt[:-1]))
@@ -238,7 +225,8 @@ if __name__ == '__main__':
         total_losses['KLD'].append(avg_kld / (i + 1))
         total_losses['Time'].append(epoch_elapsed_time)
 
-        save_statistics(args.save_filename_stats, 'summary.csv', total_losses, epoch)
+        save_statistics(args.save_filename_stats, 'summary.csv', total_losses, epoch,
+                        continue_from_mode=(i > 0))
 
         if args.visdom_server:
             img_vis = img.mul(0.5).add(0.5)
