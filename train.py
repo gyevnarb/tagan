@@ -46,8 +46,8 @@ parser.add_argument('--lambda_cond_loss', type=float, default=10,
                     help='lambda of conditional loss (default: 10)')
 parser.add_argument('--lambda_recon_loss', type=float, default=0.2,
                     help='lambda of reconstruction loss (default: 0.2)')
-parser.add_argument('--use_gpu', action='store_true', default=True,
-                    help='use gpu')
+parser.add_argument('--no_cuda', action='store_true',
+                    help='do not use cuda')
 parser.add_argument('--visdom_server', type=str,
                     help='Use visdom server')
 args = parser.parse_args()
