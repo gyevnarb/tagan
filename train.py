@@ -50,6 +50,8 @@ parser.add_argument('--no_cuda', action='store_true',
                     help='do not use cuda')
 parser.add_argument('--visdom_server', type=str,
                     help='Use visdom server')
+parser.add_argument('--instance_noise', type=float, default=0.0,
+                    help='If larger than 0, then starting variance for use in instance noise')
 args = parser.parse_args()
 
 
@@ -129,6 +131,12 @@ if __name__ == '__main__':
         for i, (img, txt, len_txt) in enumerate(train_loader):
             img, txt, len_txt = img.to(device), txt.to(device), len_txt.to(device)
             img = img.mul(2).sub(1)
+
+            if args.instance_noise > 0.0:
+                var_in = torch.tensor((1 - epoch / (args.num_epochs - 1)) * args.instance_noise)
+                z_in = torch.randn_like(img) * torch.sqrt(var_in)
+                img = img + z_in
+
             # BTC to TBC
             txt = txt.transpose(1, 0)
             # negative text
