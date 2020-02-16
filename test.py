@@ -43,13 +43,13 @@ if __name__ == '__main__':
     word_embedding = fasttext.load_model(args.fasttext_model)
 
     print('Loading a pretrained model...')
-    G = Generator(batch_first=False).to(device)
+    G = Generator().to(device)
     state_dict = torch.load(args.generator_model)
-    new_state_dict = OrderedDict()
-    for k, v in state_dict.items():
-        name = k[7:] # remove `module.`
-        new_state_dict[name] = v
-    G.load_state_dict(new_state_dict)
+    # new_state_dict = OrderedDict()
+    # for k, v in state_dict.items():
+    #     name = k[7:] # remove `module.`
+    #     new_state_dict[name] = v
+    G.load_state_dict(state_dict)
     G.eval()
 
     transform = transforms.Compose([
