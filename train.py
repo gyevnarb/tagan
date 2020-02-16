@@ -15,6 +15,15 @@ from data import ConvertCapVec, ReadFromVec
 from storage_utils import save_statistics
 
 
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--img_root', type=str, required=True,
                     help='root directory that contains images')
@@ -52,6 +61,8 @@ parser.add_argument('--visdom_server', type=str,
                     help='Use visdom server')
 parser.add_argument('--instance_noise', type=float, default=0.0,
                     help='If larger than 0, then starting variance for use in instance noise')
+parser.add_argument('--resample_noise', type=str2bool, default=False,
+                    help='Whether to resample instance noise for every input')
 args = parser.parse_args()
 
 arg_str = [(str(key), str(value)) for (key, value) in vars(args).items()]
@@ -135,9 +146,10 @@ if __name__ == '__main__':
             img, txt, len_txt = img.to(device), txt.to(device), len_txt.to(device)
             img = img.mul(2).sub(1)
 
+            z_in = 0
             if args.instance_noise > 0.0:
-                var_in = torch.tensor((1 - epoch / (args.num_epochs - 1)) * args.instance_noise)
-                z_in = torch.randn_like(img) * torch.sqrt(var_in)
+                var_in = torch.sqrt(torch.tensor((1 - epoch / (args.num_epochs - 1)) * args.instance_noise))
+                z_in = torch.randn_like(img) * var_in
                 img = img + z_in
 
             # BTC to TBC
@@ -165,6 +177,10 @@ if __name__ == '__main__':
 
             # synthesized images
             fake, _ = G(img, (txt_m, len_txt_m))
+            if args.instance_noise > 0.0:
+                if args.resample_noise:
+                    z_in = torch.randn_like(fake) * var_in
+                fake = fake + z_in
             fake_logit, _ = D(fake.detach(), txt_m, len_txt_m)
 
             fake_loss = F.binary_cross_entropy_with_logits(fake_logit, zeros_like(fake_logit))
@@ -178,6 +194,10 @@ if __name__ == '__main__':
             G.zero_grad()
 
             fake, (z_mean, z_log_stddev) = G(img, (txt_m, len_txt_m))
+            if args.instance_noise > 0.0:
+                if args.resample_noise:
+                    z_in = torch.randn_like(fake) * var_in
+                fake = fake + z_in
 
             kld = torch.mean(-z_log_stddev + 0.5 * (torch.exp(2 * z_log_stddev) + torch.pow(z_mean, 2) - 1))
             avg_kld += 0.5 * kld.item()
