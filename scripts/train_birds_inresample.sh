@@ -31,19 +31,20 @@ export TMP=/disk/scratch/${STUDENT_ID}
 mkdir -p ${TMP}/dataset
 export DATASET_DIR=${TMP}/dataset
 
-rsync -uav dataset/Oxford102/ ${DATASET_DIR}/Oxford102/
+rsync -uav dataset/CUB_200_2011/ ${DATASET_DIR}/CUB_200_2011/
 
 # Activate the relevant virtual environment:
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
 
 python train.py \
-    --img_root ${DATASET_DIR}/Oxford102 \
-    --caption_root ${DATASET_DIR}/Oxford102/flowers_icml \
+    --img_root ${DATASET_DIR}/CUB_200_2011/images \
+    --caption_root ${DATASET_DIR}/CUB_200_2011/cub_icml \
     --trainclasses_file trainvalclasses.txt \
-    --save_filename_G ./instsance_noise/flowers/G.pth \
-    --save_filename_D ./instsance_noise/flowers/D.pth \
-    --save_filename_stats ./instsance_noise/flowers/ \
+    --save_filename_G ./instsance_noise_resample/birds/G.pth \
+    --save_filename_D ./instsance_noise_resample/birds/D.pth \
+    --save_filename_stats ./instsance_noise_resample/birds/ \
     --lambda_cond_loss 10 \
     --lambda_recon_loss 0.2 \
-    --instance_noise 0.1
+    --instance_noise 0.1 \
+    --resample_noise 1

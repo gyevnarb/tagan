@@ -41,9 +41,10 @@ python train.py \
     --img_root ${DATASET_DIR}/Oxford102 \
     --caption_root ${DATASET_DIR}/Oxford102/flowers_icml \
     --trainclasses_file trainvalclasses.txt \
-    --save_filename_G ./instsance_noise/flowers/G.pth \
-    --save_filename_D ./instsance_noise/flowers/D.pth \
-    --save_filename_stats ./instsance_noise/flowers/ \
+    --save_filename_G ./instsance_noise_resample/flowers/G.pth \
+    --save_filename_D ./instsance_noise_resample/flowers/D.pth \
+    --save_filename_stats ./instsance_noise_resample/flowers/ \
     --lambda_cond_loss 10 \
     --lambda_recon_loss 0.2 \
-    --instance_noise 0.1
+    --instance_noise 0.1 \
+    --resample_noise 1
