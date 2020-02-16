@@ -45,5 +45,5 @@ python train.py \
     --save_filename_D ./birds/D.pth \
     --save_filename_stats ./birds/ \
     --lambda_cond_loss 10 \
-    --lambda_recon_loss 0.2
+    --lambda_recon_loss 0.2 \
     --instance_noise 0.1
