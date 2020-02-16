@@ -54,6 +54,9 @@ parser.add_argument('--instance_noise', type=float, default=0.0,
                     help='If larger than 0, then starting variance for use in instance noise')
 args = parser.parse_args()
 
+arg_str = [(str(key), str(value)) for (key, value) in vars(args).items()]
+print(arg_str)
+
 
 def label_like(label, x):
     assert label == 0 or label == 1
