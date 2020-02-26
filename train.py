@@ -144,7 +144,6 @@ if __name__ == '__main__':
             img, txt, len_txt = img.to(device), txt.to(device), len_txt.to(device)
             img = img.mul(2).sub(1)
 
-            z_in = 0
             if args.instance_noise > 0.0:
                 var_in = torch.sqrt(torch.tensor((1 - epoch / (args.num_epochs - 1)) * args.instance_noise))
                 z_in = torch.randn_like(img) * var_in
