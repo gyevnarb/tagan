@@ -61,8 +61,6 @@ parser.add_argument('--visdom_server', type=str,
                     help='Use visdom server')
 parser.add_argument('--instance_noise', type=float, default=0.0,
                     help='If larger than 0, then starting variance for use in instance noise')
-parser.add_argument('--resample_noise', type=str2bool, default=False,
-                    help='Whether to resample instance noise for every input')
 args = parser.parse_args()
 
 arg_str = [(str(key), str(value)) for (key, value) in vars(args).items()]
@@ -178,8 +176,6 @@ if __name__ == '__main__':
             # synthesized images
             fake, _ = G(img, (txt_m, len_txt_m))
             if args.instance_noise > 0.0:
-                if args.resample_noise:
-                    z_in = torch.randn_like(fake) * var_in
                 fake = fake + z_in
             fake_logit, _ = D(fake.detach(), txt_m, len_txt_m)
 
@@ -195,8 +191,6 @@ if __name__ == '__main__':
 
             fake, (z_mean, z_log_stddev) = G(img, (txt_m, len_txt_m))
             if args.instance_noise > 0.0:
-                if args.resample_noise:
-                    z_in = torch.randn_like(fake) * var_in
                 fake = fake + z_in
 
             kld = torch.mean(-z_log_stddev + 0.5 * (torch.exp(2 * z_log_stddev) + torch.pow(z_mean, 2) - 1))
@@ -214,6 +208,8 @@ if __name__ == '__main__':
 
             # reconstruction for matching input
             recon, (z_mean, z_log_stddev) = G(img, (txt, len_txt))
+            if args.instance_noise > 0.0:
+                recon = recon + z_in
 
             kld = torch.mean(-z_log_stddev + 0.5 * (torch.exp(2 * z_log_stddev) + torch.pow(z_mean, 2) - 1))
             avg_kld += 0.5 * kld.item()

@@ -2,7 +2,7 @@
 #SBATCH -N 1	  # nodes requested
 #SBATCH -n 1	  # tasks requested
 #SBATCH --partition=General_Usage
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:1
 #SBATCH --mem=12000  # memory in Mb
 #SBATCH --time=3-08:00:00
 
@@ -41,10 +41,9 @@ python train.py \
     --img_root ${DATASET_DIR}/Oxford102 \
     --caption_root ${DATASET_DIR}/Oxford102/flowers_icml \
     --trainclasses_file trainvalclasses.txt \
-    --save_filename_G ./instsance_noise_resample/flowers/G.pth \
-    --save_filename_D ./instsance_noise_resample/flowers/D.pth \
-    --save_filename_stats ./instsance_noise_resample/flowers/ \
+    --save_filename_G ./instance_noise/flowers/G.pth \
+    --save_filename_D ./instance_noise/flowers/D.pth \
+    --save_filename_stats ./instance_noise/flowers/ \
     --lambda_cond_loss 10 \
     --lambda_recon_loss 0.2 \
-    --instance_noise 0.1 \
-    --resample_noise 1
+    --instance_noise 0.1
