@@ -1,0 +1,54 @@
+G082:  s1630759 s1655560 
+MLP Coursework 3 - Interim Report
+
+February 2020
+
+FEEDBACK:
+
+(please note that comment categories do not have to match to sections in the submitted report)
+
+Abstract and Introduction
+A fairly good abstract. It provides a concise description of the project.
+The introduction lacks motivation. The task needs some more discussion. 
+Will be good to briefly outline the stability issues with TAGAN and then introduce the task. 
+For instance, could show some failure examples of TAGAN and
+then relate it with the stability or could also take theoretical apporach.
+Better to add more description on instance noise, GAN objective and gradient penalities.
+Why they are important and how they help in GAN training? 
+Citations are fine will be good to add more references to recent GAN papers. 
+
+
+Research questions and objectives
+Research question is clear from the description. Will be better to also 
+describe the motivation behind it. Also some justification on proposed solution. 
+
+
+Data set and task
+The dataset is outlined but requires more explanation. Should add details like size of an image, number of samples used for training.
+The evaluation criterion is not explained. Will be better to look at measures like
+FID, IS score, etc. There are some recent papers on GAN evaluation which could be investigated.   
+
+
+
+Methodology
+The technical details of TAGAN is explained. But there is no discussion on proposed methodology.
+No details on how the proposed solution will be integrated with TAGAN.
+The reference to literature is limited.
+
+
+Experiments
+No details on experimental setup. No baseline experiments carried out. 
+
+
+Interim conclusions
+Interim conclusion is missing. The presented work looks like in an early stage of project. 
+
+
+Plan
+The plan is very vaguely stated. The project has not yet moved to implementation stage.
+The presented work is not supported by proper motivation. There is no back up plan. 
+The work doesn't seem feasible in given time.
+
+
+Other Comments
+

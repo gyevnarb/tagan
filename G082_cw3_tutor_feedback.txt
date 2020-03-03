@@ -1,0 +1,73 @@
+G082:  s1630759 s1655560 
+MLP Coursework 3 - Interim Report
+
+February 2020
+
+FEEDBACK:
+
+(please note that comment categories do not have to match to sections in the submitted report)
+
+Abstract and Introduction
+(how clear is the abstract? does it cover what is reported in the document?)
+(clear outline and motivation? research questions?  citations to the literature?)
+
+The abstract is very clear and outlines the work well. 
+The introduction provides good backdrop, relevant literature and decent
+motivation of the work.
+
+Research questions and objectives
+(clearly and precisely stated?)
+Objectives are clearly stated, but research question could use some more
+clarification. Why do you think the techniques you discuss are relevant?
+
+
+Data set and task
+(data set clearly presented?  preprocessing?  training/test/validation split?
+is the task explained? evaluation?)
+
+Datasets are briefly presented. Sample pictures could have been nice, as well
+as a qualitative description, e.g. which is harder and why.
+
+The task is mentioned in the introduction (Using NL to alter
+images) but not discussed afterwards. It is important to precisely describe
+what you want to achieve before jumping to the architecture
+
+
+
+Methodology
+(explanation of technical approaches? reference to the literature?)
+
+The network architecture is described, but it hard to follow, especially for
+non-expert. Introducing key concepts in the task description would have helped.
+Some formulations are unclear, ex: "…then a softmax to produce the unconditional
+adversarial loss D(x)" (a softmax layer outputs a probability distribution).
+
+Description of the different contributions are missing
+Overall this whole section needs more details.
+
+
+Experiments
+(have appropriate baseline experiments been carried out? clear presentation of results?
+clear what each experiment tells us / hypothesis? reproducible?)
+n/a
+
+
+
+Interim conclusions
+(how does the work done so far match to the objectives? are changes necessary?
+are the conclusions clearly expressed?)
+n/a
+
+
+Plan
+(is there a clear plan for the remainder of the project? have any risks been discussed?
+is there a need for a backup plan, and if so what is is it? 
+is the project feasible given time and resources?)
+Plan is a bit weak, considering you haven't reported experiments.
+In which order are you going to try the contribution? What are you going to do 
+if training fails? If you get conclusive results by next week?
+
+Other Comments
+Decent report overall, but could be greatly improved with more details
+
+
