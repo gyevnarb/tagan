@@ -37,12 +37,13 @@ rsync -uav dataset/Oxford102/ ${DATASET_DIR}/Oxford102/
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
 
-python train_alternate.py \
+python train_reg.py \
     --img_root ${DATASET_DIR}/Oxford102 \
     --caption_root ${DATASET_DIR}/Oxford102/flowers_icml \
     --trainclasses_file trainvalclasses.txt \
-    --save_filename_G ./alternate/flowers/G.pth \
-    --save_filename_D ./alternate/flowers/D.pth \
-    --save_filename_stats ./alternate/flowers/ \
+    --save_filename_G ./regularised/flowers/G.pth \
+    --save_filename_D ./regularised/flowers/D.pth \
+    --save_filename_stats ./regularised/flowers/ \
     --lambda_cond_loss 10 \
-    --lambda_recon_loss 0.2
+    --lambda_recon_loss 0.2 \\
+    --gamma_0 2.0

@@ -2,9 +2,10 @@ import os
 import argparse
 import visdom
 import time
+import numpy as np
 
 import torch
-import torch.nn as nn
+from torch.autograd import grad
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.optim.lr_scheduler as lr_scheduler
@@ -14,6 +15,9 @@ from model import Generator, Discriminator
 from data import ConvertCapVec, ReadFromVec
 from storage_utils import save_statistics
 
+
+torch.manual_seed(0)
+np.random.seed(0)
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -59,8 +63,9 @@ parser.add_argument('--no_cuda', action='store_true',
                     help='do not use cuda')
 parser.add_argument('--visdom_server', type=str,
                     help='Use visdom server')
-parser.add_argument('--instance_noise', type=float, default=0.0,
-                    help='If larger than 0, then starting variance for use in instance noise')
+parser.add_argument('--gamma_0', type=float,
+                    help='Initial regularisation constant')
+
 args = parser.parse_args()
 
 arg_str = [(str(key), str(value)) for (key, value) in vars(args).items()]
@@ -80,6 +85,34 @@ def zeros_like(x):
 
 def ones_like(x):
     return label_like(1, x)
+
+
+def gradient_penalties(d1_logits, d1_arg, d2_logits, d2_arg):
+    batch_size = d1_logits.shape[0]
+    assert batch_size == d2_logits.shape[0]
+    d1 = torch.sigmoid(d1_logits)
+    d2 = torch.sigmoid(d1_logits)
+
+    assert d1_logits.requires_grad
+    assert d2_logits.requires_grad
+    assert d1_arg.requires_grad
+    assert d2_arg.requires_grad
+
+    grad_d1_logits = grad(d1_logits, d1_arg, grad_outputs=ones_like(d1_logits),
+                          create_graph=True, retain_graph=True)[0]
+    grad_d2_logits = grad(d2_logits, d2_arg, grad_outputs=ones_like(d2_logits),
+                          create_graph=True, retain_graph=True)[0]
+    grad_d1_norm = torch.norm(grad_d1_logits.view(batch_size, -1), dim=1)
+    grad_d2_norm = torch.norm(grad_d2_logits.view(batch_size, -1), dim=1)
+
+    print(grad_d1_norm.shape, d1.shape)
+    assert grad_d1_norm.shape == d1.shape
+    assert grad_d2_norm.shape == d2.shape
+
+    reg_d1 = torch.mul((1.0 - d1) ** 2, grad_d1_norm ** 2)
+    reg_d2 = torch.mul(d2 ** 2, grad_d2_norm ** 2)
+    reg = torch.mean(reg_d1 + reg_d2)
+    return reg
 
 
 if __name__ == '__main__':
@@ -128,7 +161,7 @@ if __name__ == '__main__':
         vis = visdom.Visdom(server=args.visdom_server)
 
     total_losses = {'Epoch': [], 'D_real': [], 'D_real_c': [], 'D_fake': [], 'G_fake': [],
-                    'G_fake_c': [], 'G_recon': [], 'KLD': [], 'Time': []}
+                    'G_fake_c': [], 'G_recon': [], 'KLD': [], 'D_Reg': [], 'Time': []}
 
     for epoch in range(args.num_epochs):
         epoch_start_time = time.time()
@@ -140,14 +173,13 @@ if __name__ == '__main__':
         avg_G_fake_c_loss = 0
         avg_G_recon_loss = 0
         avg_kld = 0
+        avg_d_reg = 0
+
+        gamma = args.gamma_0 * 0.01 ** (epoch / (args.num_epochs - 1))
         for i, (img, txt, len_txt) in enumerate(train_loader):
             img, txt, len_txt = img.to(device), txt.to(device), len_txt.to(device)
             img = img.mul(2).sub(1)
-
-            if args.instance_noise > 0.0:
-                var_in = torch.sqrt(torch.tensor((1 - epoch / (args.num_epochs - 1)) * args.instance_noise))
-                z_in = torch.randn_like(img) * var_in
-                img = img + z_in
+            img.requires_grad = True
 
             # BTC to TBC
             txt = txt.transpose(1, 0)
@@ -170,18 +202,23 @@ if __name__ == '__main__':
 
             real_loss = real_loss + args.lambda_cond_loss * real_c_loss
 
-            real_loss.backward()
+            # real_loss.backward()
 
             # synthesized images
             fake, _ = G(img, (txt_m, len_txt_m))
-            if args.instance_noise > 0.0:
-                fake = fake + z_in
-            fake_logit, _ = D(fake.detach(), txt_m, len_txt_m)
+            fake_logit, _ = D(fake, txt_m, len_txt_m)
 
-            fake_loss = -F.binary_cross_entropy_with_logits(fake_logit, ones_like(fake_logit))
+            fake_loss = F.binary_cross_entropy_with_logits(fake_logit, zeros_like(fake_logit))
             avg_D_fake_loss += fake_loss.item()
 
-            fake_loss.backward()
+            # fake_loss.backward()
+
+            # regularisation
+            d_reg = (gamma / 2.0) * gradient_penalties(real_logit, img, fake_logit, fake)
+            avg_d_reg += d_reg.item()
+
+            loss = real_loss + fake_loss + d_reg
+            loss.backward()
 
             d_optimizer.step()
 
@@ -189,8 +226,6 @@ if __name__ == '__main__':
             G.zero_grad()
 
             fake, (z_mean, z_log_stddev) = G(img, (txt_m, len_txt_m))
-            if args.instance_noise > 0.0:
-                fake = fake + z_in
 
             kld = torch.mean(-z_log_stddev + 0.5 * (torch.exp(2 * z_log_stddev) + torch.pow(z_mean, 2) - 1))
             avg_kld += 0.5 * kld.item()
@@ -207,8 +242,6 @@ if __name__ == '__main__':
 
             # reconstruction for matching input
             recon, (z_mean, z_log_stddev) = G(img, (txt, len_txt))
-            if args.instance_noise > 0.0:
-                recon = recon + z_in
 
             kld = torch.mean(-z_log_stddev + 0.5 * (torch.exp(2 * z_log_stddev) + torch.pow(z_mean, 2) - 1))
             avg_kld += 0.5 * kld.item()
@@ -223,11 +256,11 @@ if __name__ == '__main__':
             g_optimizer.step()
 
             if i % args.log_interval == 0:
-                print('Epoch [%03d/%03d], Iter [%03d/%03d], D_real: %.4f, D_real_c: %.4f, D_fake: %.4f, G_fake: %.4f, G_fake_c: %.4f, G_recon: %.4f, KLD: %.4f'
+                print('Epoch [%03d/%03d], Iter [%03d/%03d], D_real: %.4f, D_real_c: %.4f, D_fake: %.4f, G_fake: %.4f, G_fake_c: %.4f, G_recon: %.4f, D_Reg: %.4f, KLD: %.4f'
                     % (epoch + 1, args.num_epochs, i + 1, len(train_loader), avg_D_real_loss / (i + 1),
                         avg_D_real_c_loss / (i + 1), avg_D_fake_loss / (i + 1),
                         avg_G_fake_loss / (i + 1), avg_G_fake_c_loss / (i + 1),
-                        avg_G_recon_loss / (i + 1), avg_kld / (i + 1)))
+                        avg_G_recon_loss / (i + 1), avg_d_reg / (i + 1), avg_kld / (i + 1)))
 
         d_lr_scheduler.step()
         g_lr_scheduler.step()
@@ -235,11 +268,11 @@ if __name__ == '__main__':
         epoch_elapsed_time = time.time() - epoch_start_time
         epoch_elapsed_time = "{:.4f}".format(epoch_elapsed_time)
 
-        print('Epoch [%03d/%03d], Iter [%03d/%03d], D_real: %.4f, D_real_c: %.4f, D_fake: %.4f, G_fake: %.4f, G_fake_c: %.4f, G_recon: %.4f, KLD: %.4f, Time: %s'
+        print('Epoch [%03d/%03d], Iter [%03d/%03d], D_real: %.4f, D_real_c: %.4f, D_fake: %.4f, G_fake: %.4f, G_fake_c: %.4f, G_recon: %.4f, D_Reg: %.4f, KLD: %.4f, Time: %s'
             % (epoch + 1, args.num_epochs, i + 1, len(train_loader), avg_D_real_loss / (i + 1),
                 avg_D_real_c_loss / (i + 1), avg_D_fake_loss / (i + 1),
                 avg_G_fake_loss / (i + 1), avg_G_fake_c_loss / (i + 1),
-                avg_G_recon_loss / (i + 1), avg_kld / (i + 1), epoch_elapsed_time))
+                avg_G_recon_loss / (i + 1), avg_d_reg / (i + 1), avg_kld / (i + 1), epoch_elapsed_time))
 
         total_losses['Epoch'].append(epoch + 1)
         total_losses['D_real'].append(avg_D_real_loss / (i + 1))
@@ -249,6 +282,7 @@ if __name__ == '__main__':
         total_losses['G_fake_c'].append(avg_G_fake_c_loss / (i + 1))
         total_losses['G_recon'].append(avg_G_recon_loss / (i + 1))
         total_losses['KLD'].append(avg_kld / (i + 1))
+        total_losses['D_Reg'].append(avg_d_reg / (i + 1))
         total_losses['Time'].append(epoch_elapsed_time)
 
         save_statistics(args.save_filename_stats, 'summary.csv', total_losses, epoch,

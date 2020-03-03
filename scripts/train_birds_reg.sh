@@ -37,12 +37,13 @@ rsync -uav dataset/CUB_200_2011/ ${DATASET_DIR}/CUB_200_2011/
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
 
-python train_alternate.py \
+python train_reg.py \
     --img_root ${DATASET_DIR}/CUB_200_2011/images \
     --caption_root ${DATASET_DIR}/CUB_200_2011/cub_icml \
     --trainclasses_file trainvalclasses.txt \
-    --save_filename_G ./alternate/birds/G.pth \
-    --save_filename_D ./alternate/birds/D.pth \
-    --save_filename_stats ./alternate/birds/ \
+    --save_filename_G ./regularised/birds/G.pth \
+    --save_filename_D ./regularised/birds/D.pth \
+    --save_filename_stats ./regularised/birds/ \
     --lambda_cond_loss 10 \
-    --lambda_recon_loss 0.2
+    --lambda_recon_loss 0.2 \
+    --gamma_0 2.0
