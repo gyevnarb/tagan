@@ -16,9 +16,6 @@ from data import ConvertCapVec, ReadFromVec
 from storage_utils import save_statistics
 
 
-torch.manual_seed(0)
-np.random.seed(0)
-
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
@@ -89,14 +86,8 @@ def ones_like(x):
 
 def gradient_penalties(d1_logits, d1_arg, d2_logits, d2_arg):
     batch_size = d1_logits.shape[0]
-    assert batch_size == d2_logits.shape[0]
     d1 = torch.sigmoid(d1_logits)
     d2 = torch.sigmoid(d1_logits)
-
-    assert d1_logits.requires_grad
-    assert d2_logits.requires_grad
-    assert d1_arg.requires_grad
-    assert d2_arg.requires_grad
 
     grad_d1_logits = grad(d1_logits, d1_arg, grad_outputs=ones_like(d1_logits),
                           create_graph=True, retain_graph=True)[0]
@@ -104,10 +95,6 @@ def gradient_penalties(d1_logits, d1_arg, d2_logits, d2_arg):
                           create_graph=True, retain_graph=True)[0]
     grad_d1_norm = torch.norm(grad_d1_logits.view(batch_size, -1), dim=1)
     grad_d2_norm = torch.norm(grad_d2_logits.view(batch_size, -1), dim=1)
-
-    print(grad_d1_norm.shape, d1.shape)
-    assert grad_d1_norm.shape == d1.shape
-    assert grad_d2_norm.shape == d2.shape
 
     reg_d1 = torch.mul((1.0 - d1) ** 2, grad_d1_norm ** 2)
     reg_d2 = torch.mul(d2 ** 2, grad_d2_norm ** 2)
@@ -202,16 +189,12 @@ if __name__ == '__main__':
 
             real_loss = real_loss + args.lambda_cond_loss * real_c_loss
 
-            # real_loss.backward()
-
             # synthesized images
             fake, _ = G(img, (txt_m, len_txt_m))
             fake_logit, _ = D(fake, txt_m, len_txt_m)
 
             fake_loss = F.binary_cross_entropy_with_logits(fake_logit, zeros_like(fake_logit))
             avg_D_fake_loss += fake_loss.item()
-
-            # fake_loss.backward()
 
             # regularisation
             d_reg = (gamma / 2.0) * gradient_penalties(real_logit, img, fake_logit, fake)
